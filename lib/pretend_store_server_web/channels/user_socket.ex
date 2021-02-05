@@ -4,6 +4,7 @@ defmodule PretendStoreServerWeb.UserSocket do
   ## Channels
   # channel "room:*", PretendStoreServerWeb.RoomChannel
   channel "product_list:*", PretendStoreServerWeb.ProductListChannel
+  channel "product:*", PretendStoreServerWeb.ProductChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

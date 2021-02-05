@@ -17,8 +17,8 @@ defmodule PretendStoreServer.Products do
       [%Product{}, ...]
 
   """
-  def list_products do
-    Repo.all(Product)
+  def list_products(page \\ 0) do
+    Product |> Repo.paginate(page: page)
   end
 
   @doc """

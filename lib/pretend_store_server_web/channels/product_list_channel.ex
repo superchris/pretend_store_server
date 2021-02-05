@@ -7,8 +7,16 @@ defmodule PretendStoreServerWeb.ProductListChannel do
 
   @impl true
   def join("product_list:all", _payload, socket) do
-    reply = ProductView.render("index.json", %{products: Products.list_products()})
-    {:ok, reply, socket}
+    send(self(), :after_join)
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_info(:after_join, socket) do
+    %{products: products, total_pages: total_pages, page_number: page_number} = ProductView.render("index.json", Products.list_products())
+    state = %{cart: [], products: products, total_pages: total_pages, page_number: page_number}
+    push(socket, "state:change", state)
+    {:noreply, socket |> assign(:state, state)}
   end
 
   # Channels can be used in a request/response fashion
@@ -26,16 +34,18 @@ defmodule PretendStoreServerWeb.ProductListChannel do
     {:noreply, socket}
   end
 
-  def handle_in("addProductToCart", product, %{assigns: %{cart: cart}} = socket) do
+  def handle_in("addProductToCart", product, %{assigns: %{state: %{cart: cart} = state}} = socket) do
     IO.inspect(product)
-    changed_cart = [product | cart]
-    push(socket, "cart:change", %{cart: changed_cart})
-    {:noreply, socket |> assign(:cart, changed_cart)}
+    new_state = %{state | cart: [product | cart]}
+
+    push(socket, "state:change", new_state)
+    {:noreply, socket |> assign(:state, new_state)}
   end
 
-  def handle_in("addProductToCart", product, socket) do
-    IO.inspect(product)
-    push(socket, "cart:change", %{cart: [product]})
-    {:noreply, socket |> assign(:cart, [product])}
+  def handle_in("changed", page, %{assigns: %{state: state}} = socket) do
+    %{products: products, total_pages: total_pages, page_number: page_number} = ProductView.render("index.json", Products.list_products(page))
+    new_state = %{state | products: products, page_number: page_number, total_pages: total_pages}
+    push(socket, "state:change", new_state)
+    {:noreply, socket |> assign(:state, new_state)}
   end
 end

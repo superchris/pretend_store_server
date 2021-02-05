@@ -44,7 +44,10 @@ defmodule PretendStoreServer.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:ex_machina, "~> 2.4"},
+      {:faker, "~> 0.16.0"},
+      {:scrivener_ecto, "~> 2.0"}
     ]
   end
 
