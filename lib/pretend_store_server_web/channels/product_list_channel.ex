@@ -13,39 +13,34 @@ defmodule PretendStoreServerWeb.ProductListChannel do
 
   @impl true
   def handle_info(:after_join, socket) do
-    %{products: products, total_pages: total_pages, page_number: page_number} = ProductView.render("index.json", Products.list_products())
-    state = %{cart: [], products: products, total_pages: total_pages, page_number: page_number}
+    state = init(socket)
     push(socket, "state:change", state)
     {:noreply, socket |> assign(:state, state)}
   end
 
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
+  def init(_socket) do
+    %{products: products, total_pages: total_pages, page_number: page_number} =
+      ProductView.render("index.json", Products.list_products())
+    %{cart: [], products: products, total_pages: total_pages, page_number: page_number}
+  end
+
   @impl true
-  def handle_in("ping", payload, socket) do
-    {:reply, {:ok, payload}, socket}
+  def handle_in("lvs_evt:" <> event_name, payload, %{assigns: %{state: state}} = socket) do
+    case handle_event(event_name, payload, state) do
+      {:noreply, new_state} ->
+        push(socket, "state:change", new_state)
+        {:noreply, socket |> assign(:state, new_state)}
+    end
   end
 
-  # It is also common to receive messages from the client and
-  # broadcast to everyone in the current topic (product_list:lobby).
-  @impl true
-  def handle_in("shout", payload, socket) do
-    broadcast(socket, "shout", payload)
-    {:noreply, socket}
+  def handle_event("addProductToCart", product, %{cart: cart} = state) do
+    {:noreply, %{state | cart: [product | cart]} }
   end
 
-  def handle_in("addProductToCart", product, %{assigns: %{state: %{cart: cart} = state}} = socket) do
-    IO.inspect(product)
-    new_state = %{state | cart: [product | cart]}
+  def handle_event("changed", page, state) do
+    %{products: products, total_pages: total_pages, page_number: page_number} =
+      ProductView.render("index.json", Products.list_products(page))
 
-    push(socket, "state:change", new_state)
-    {:noreply, socket |> assign(:state, new_state)}
-  end
-
-  def handle_in("changed", page, %{assigns: %{state: state}} = socket) do
-    %{products: products, total_pages: total_pages, page_number: page_number} = ProductView.render("index.json", Products.list_products(page))
-    new_state = %{state | products: products, page_number: page_number, total_pages: total_pages}
-    push(socket, "state:change", new_state)
-    {:noreply, socket |> assign(:state, new_state)}
+    {:noreply, %{state | products: products, page_number: page_number, total_pages: total_pages}}
   end
 end
